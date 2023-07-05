@@ -51,7 +51,6 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
                 newline = line.replace('\n','')
                 newline = newline.split(',')
                 newline = [float(element) for element in newline]
-                #if newline[0] > 10: #excluding velocities below 10/min
                 velocity.append(newline[0])
                 torque.append(newline[1])
             len_of_file=len(torque)
