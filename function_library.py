@@ -51,9 +51,9 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
                 newline = line.replace('\n','')
                 newline = newline.split(',')
                 newline = [float(element) for element in newline]
-                if newline[0] > 10: #excluding velocities below 10/min
-                    velocity.append(newline[0])
-                    torque.append(newline[1])
+                #if newline[0] > 10: #excluding velocities below 10/min
+                velocity.append(newline[0])
+                torque.append(newline[1])
             len_of_file=len(torque)
             print(len_of_file ,  element)
             avg_torque = [np.sum(torque[i:i+num_of_datapoints])/num_of_datapoints for i in range(0,len_of_file,num_of_datapoints)]
