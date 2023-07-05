@@ -7,8 +7,6 @@ class av_data():
         self.name = name
         self.av_torque = av_torque
         self.av_velocity = av_velocity
-        #self.av_velocity = av_velocity
-        #self.av_torque = av_torque
     
     def chop_small_torque(self, boundary):
         index = 0
@@ -28,7 +26,7 @@ class av_data():
         len_of_torque = len(self.av_torque)
         reference = reference[-len_of_torque:]
         
-        difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))]  
+        difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))] 
         max_difference = max(difference)
         min_difference = min(difference)
         optimal_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == max_difference), None)
