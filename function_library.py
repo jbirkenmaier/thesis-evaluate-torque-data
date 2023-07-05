@@ -28,7 +28,7 @@ class av_data():
         len_of_torque = len(self.av_torque)
         reference = reference[-len_of_torque:]
         
-        difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))]  #torque and reference index not same
+        difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))]  
         max_difference = max(difference)
         min_difference = min(difference)
         optimal_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == max_difference), None)
