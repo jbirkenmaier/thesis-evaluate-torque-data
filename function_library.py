@@ -19,7 +19,7 @@ class av_data():
             index += 1
         for element in self.av_torque[index:]:
             if element < boundary:
-                raise Exception('There is an element right of the minimum index that is smaller than the boundary.')
+                raise Exception('There is an element to the right of the minimum index that is smaller than the boundary.')
         self.av_torque = self.av_torque[index:]
         self.av_velocity = self.av_velocity[index:]
     
