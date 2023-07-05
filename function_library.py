@@ -8,13 +8,18 @@ class av_data():
         self.av_velocity = av_velocity
         self.av_torque = av_torque
 
-    def find_max_reduction(self, reference):
+    def chop_small_torque(boundary):
+        pass
+        
+
+    def find_ext_reduction(self, reference):
         difference = [1-self.av_torque[i]/reference[i] for i in range(len(reference))]  
         max_difference = max(difference)
         min_difference = min(difference)
         optimal_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == max_difference), None)
+        min_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == min_difference), None)
         
-        return max_difference, optimal_velocity, min_difference
+        return max_difference, optimal_velocity, min_difference, min_velocity
         
 
 def read_torque_csv(num_of_datapoints, name_of_reference):
@@ -46,7 +51,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference):
 
     for element in data:
         if element.name != reference.name:
-            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min'%(element.find_max_reduction(reference.av_torque)[0]*100,element.find_max_reduction(reference.av_torque)[1]))
+            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(element.find_ext_reduction(reference.av_torque)[0]*100,element.find_ext_reduction(reference.av_torque)[1],element.find_ext_reduction(reference.av_torque)[2]*100,element.find_ext_reduction(reference.av_torque)[3]))
 
 
 
