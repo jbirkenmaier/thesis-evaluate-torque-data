@@ -36,28 +36,16 @@ class av_data():
         return max_difference, optimal_velocity, min_difference, min_velocity, difference
 
     def average_over_space(self, space_intervall, torque_reduction, velocity_steps = 5, maximum_velocity = 200):
-        print(self.av_velocity[0])
-        print(math.floor(self.av_velocity[0]/10)*10)
         num_of_intervalls = math.ceil((maximum_velocity + 1 - math.floor(self.av_velocity[0]/10)*10) / space_intervall) #+1 is important as it makes sure that if you land on a full number it will still be ceiled. If you land on 159, adding +1 does no harm, as it will not be ceiled. 
-        print(len(self.av_torque))
         num_points_first_intervall=len(self.av_torque)-(num_of_intervalls-1)*space_intervall/velocity_steps#-1?????
-        print(num_points_first_intervall)
-        print(len(torque_reduction))
         intervalls = [space_intervall/velocity_steps for i in range(int(num_of_intervalls))]
         intervalls[0] = num_points_first_intervall
-        print(intervalls)
 
         k=0
         av_torque_intervalled=[]
         for j in intervalls:
-            print('-------', torque_reduction[k:k+int(j)])
             av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
-            k+=int(j)
-            
-        print(torque_reduction)
-            
-        #    av_torque_intervalled = [np.sum(torque_reduction[i:i+int(j)])/int(j) for i in range(0, int(sum(intervalls)),int(j))]
-        #print(av_torque_intervalled)
+            k+=int(j)            
         return av_torque_intervalled
 
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque):
@@ -102,12 +90,4 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             print(reduction_spaced_in_percent)
             
 
-    reduc =  data[0].find_ext_reduction(reference.av_torque)[4]
 
-    print(reduc)
-    print(len(reduc))
-    
-    num_points_first_intervall=len(data[0].av_torque)-(4-1)*(5-1)
-    print(num_points_first_intervall)
-    reduc = (sum(reduc[0:num_points_first_intervall-1]))/num_points_first_intervall
-    print(reduc)
