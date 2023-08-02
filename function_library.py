@@ -48,7 +48,7 @@ class av_data():
             k+=int(j)            
         return av_torque_intervalled
 
-def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque):
+def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range):
     csv_file_list = []
     data = []
     for element in os.listdir():
@@ -85,9 +85,9 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
 
     for element in data:
         if element.name != reference.name:
-            reduction_spaced_in_percent = element.average_over_space(50, element.find_ext_reduction(reference.av_torque)[4])
+            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-            print(reduction_spaced_in_percent)
+            print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
             
 
 
