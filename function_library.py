@@ -105,5 +105,5 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             reduction_spaced_in_percent = [str(element*100)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
             with open(results_filename_intervalled_reduction,'a') as file:
-                file.write(str(element.name)+','+ ','.join(reduction_spaced_in_percent)+'\n')
+                file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
 
