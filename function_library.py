@@ -97,7 +97,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(max_reduction_torque,max_reduction_velocity,min_reduction_torque,min_reduction_velocity))  
 
             with open(results_filename_max_reduction,'a') as file:
-                file.write(str(element.name)+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
+                file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
             
     for element in data:
         if element.name != reference.name:
