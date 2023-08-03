@@ -48,7 +48,7 @@ class av_data():
             k+=int(j)            
         return av_torque_intervalled
 
-def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range):
+def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction):
     csv_file_list = []
     data = []
     for element in os.listdir():
@@ -61,11 +61,15 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
         torque = []
         with open(element) as file:
             for line in file:
-                newline = line.replace('\n','')
-                newline = newline.split(',')
-                newline = [float(element) for element in newline]
-                velocity.append(newline[0])
-                torque.append(newline[1])
+                try:
+                    newline = line.replace('\n','')
+                    newline = newline.split(',')
+                    #print(newline)
+                    newline = [float(content) for content in newline]
+                    velocity.append(newline[0])
+                    torque.append(newline[1])
+                except:
+                    continue
             len_of_file=len(torque)
             print(len_of_file ,  element)
             avg_torque = [np.sum(torque[i:i+num_of_datapoints])/num_of_datapoints for i in range(0,len_of_file,num_of_datapoints)]
@@ -81,13 +85,21 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     
     for element in data:
         if element.name != reference.name:
-            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(element.find_ext_reduction(reference.av_torque)[0]*100,element.find_ext_reduction(reference.av_torque)[1],element.find_ext_reduction(reference.av_torque)[2]*100,element.find_ext_reduction(reference.av_torque)[3]))
+            max_reduction_torque = element.find_ext_reduction(reference.av_torque)[0]*100
+            max_reduction_velocity = element.find_ext_reduction(reference.av_torque)[1]
+            min_reduction_torque = element.find_ext_reduction(reference.av_torque)[2]*100
+            min_reduction_velocity = element.find_ext_reduction(reference.av_torque)[3]
+            
+            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(max_reduction_torque,max_reduction_velocity,min_reduction_torque,min_reduction_velocity))  
 
+            with open(results_filename_max_reduction,'a') as file:
+                file.write(str(element.name)+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
+            
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
-            
-
+            with open(results_filename_intervalled_reduction,'a') as file:
+                file.write(str(element.name)+','+str(reduction_spaced_in_percent)+'\n')
 
