@@ -101,13 +101,19 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
 
             with open(results_filename_max_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
+
+    legend_names = [element.name for element in data]
             
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
+            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
+            plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.')
             reduction_spaced_in_percent = [str(element*100)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
             print(element.intervall_denumerator)
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
-            
+
+    plt.legend(legend_names)
+    plt.show()
