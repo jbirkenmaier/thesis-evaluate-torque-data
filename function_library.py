@@ -8,6 +8,7 @@ class av_data():
         self.name = name
         self.av_torque = av_torque
         self.av_velocity = av_velocity
+        self.intervall_denumerator = []
     
     def chop_small_torque(self, boundary):
         index = 0
@@ -36,11 +37,13 @@ class av_data():
         return max_difference, optimal_velocity, min_difference, min_velocity, difference
 
     def average_over_space(self, space_intervall, torque_reduction, velocity_steps = 5, maximum_velocity = 200):
-        num_of_intervalls = math.ceil((maximum_velocity + 1 - math.floor(self.av_velocity[0]/10)*10) / space_intervall) #+1 is important as it makes sure that if you land on a full number it will still be ceiled. If you land on 159, adding +1 does no harm, as it will not be ceiled. 
-        num_points_first_intervall=len(self.av_torque)-(num_of_intervalls-1)*space_intervall/velocity_steps#-1?????
+        num_of_intervalls = math.ceil((maximum_velocity + 1 - math.floor(self.av_velocity[0]/10)*10) / space_intervall) #+1 is important as it makes sure that if you land on a full number it will still be ceiled. If you land on 159, adding +1 does no harm, as it will not be ceiled.
+        self.intervall_denumerator = [i  for i in range(int(maximum_velocity/space_intervall))]
+        num_points_first_intervall=len(self.av_torque)-(num_of_intervalls-1)*space_intervall/velocity_steps
         intervalls = [space_intervall/velocity_steps for i in range(int(num_of_intervalls))]
         intervalls[0] = num_points_first_intervall
-
+        chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
+        self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
         k=0
         av_torque_intervalled=[]
         for j in intervalls:
@@ -104,6 +107,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [str(element*100)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
+            print(element.intervall_denumerator)
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
-
+            
