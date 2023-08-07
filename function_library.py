@@ -9,6 +9,7 @@ class av_data():
         self.av_torque = av_torque
         self.av_velocity = av_velocity
         self.intervall_denumerator = []
+        self.depth = 0
     
     def chop_small_torque(self, boundary):
         index = 0
@@ -36,6 +37,14 @@ class av_data():
         
         return max_difference, optimal_velocity, min_difference, min_velocity, difference
 
+    def find_torque_at_velocity(self, velocity):
+        for j,element in enumerate(self.av_velocity):
+            if element == velocity:
+                index = j
+                break
+        torque_at_velocity = self.av_torque[index]    
+        return torque_at_velocity
+    
     def average_over_space(self, space_intervall, torque_reduction, velocity_steps = 5, maximum_velocity = 200):
         num_of_intervalls = math.ceil((maximum_velocity + 1 - math.floor(self.av_velocity[0]/10)*10) / space_intervall) #+1 is important as it makes sure that if you land on a full number it will still be ceiled. If you land on 159, adding +1 does no harm, as it will not be ceiled.
         self.intervall_denumerator = [i  for i in range(int(maximum_velocity/space_intervall))]
@@ -44,7 +53,7 @@ class av_data():
         intervalls[0] = num_points_first_intervall
         chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
         self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
-        self.intervall_denumerator = ['(%.f - %.f)/min'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
+        self.intervall_denumerator = ['(%.f bis %.f)/min'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
         k=0
         av_torque_intervalled=[]
         for j in intervalls:
@@ -55,11 +64,14 @@ class av_data():
     def naming(self):
         self.name = self.name.replace('_','')
         self.name = self.name[:-14]
-
+        if self.name == 'ref':
+            self.name = 'Referenz'
+        print(self.name)
         if 't' in self.name:
             position_of_t = self.name.index('t')
             self.name = self.name[:position_of_t]+'mm, Tiefe ' + self.name[position_of_t+1]+'.' + self.name[position_of_t+2:] + 'mm'
-
+            position_of_depth = self.name.index('Tiefe ')
+            self.depth = float(self.name[position_of_depth+6:position_of_depth+6+4])
         if 'b' in self.name:
             position_of_b = self.name.index('b')
             self.name = self.name[:position_of_b]+'Breite ' + self.name[position_of_b+1]+'.' + self.name[position_of_b+2:]
@@ -72,7 +84,7 @@ class av_data():
             self.name=self.name[:-2]
             print(self.name)
             
-def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction):
+def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
     try: 
         os.remove(results_filename_max_reduction)
         os.remove(results_filename_intervalled_reduction)
@@ -126,7 +138,6 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     for element in data:
         element.naming()
         
-    legend_names = [element.name for element in data]
     fig, ax = plt.subplots()
     
     ax.set_prop_cycle(color=[
@@ -147,16 +158,30 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     '#ffcccb'   # Light red 
     ])
     
+    #velocity_for_depth_comparison
+    
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-            plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.')
+            plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.', label=element.name)
             reduction_spaced_in_percent = [str(element)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
 
-    plt.legend(legend_names, bbox_to_anchor=(1.00,1.0), loc='best')
-    #plt.tight_layout()
+    plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
+    plt.xlabel('Drehzahlbereiche in 1/min')
+    plt.ylabel('Reduktion zu Referenz in %')
+    plt.show()
+
+    for element in data:
+        print(element.depth, type(element.depth))
+        print(element.find_torque_at_velocity(velocity_for_depth_comparison), type(element.find_torque_at_velocity(velocity_for_depth_comparison)))
+        plt.plot(element.depth,element.find_torque_at_velocity(velocity_for_depth_comparison), '.', label=element.name)
+
+    plt.ylabel('Absolutes Drehmoment in %')
+    plt.xlabel('Rillentiefe in mm')
+    plt.title('Konstante Drehzahl: %.f/min'%velocity_for_depth_comparison)
+    plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.show()
