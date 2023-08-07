@@ -66,6 +66,11 @@ class av_data():
         if 's' in self.name:
             position_of_s = self.name.index('s')
             self.name = self.name[:position_of_s]+'mm, Stegbreite ' + self.name[position_of_s+1]+'.' + self.name[position_of_s+2:]
+        if 'comp' in self.name:
+            print(self.name)
+            self.name=self.name.replace('comp','mm, Kompartements: ')
+            self.name=self.name[:-2]
+            print(self.name)
             
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction):
     try: 
