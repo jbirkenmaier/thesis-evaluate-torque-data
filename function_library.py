@@ -104,7 +104,25 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
 
     legend_names = [element.name for element in data]
-
+    fig, ax = plt.subplots()
+    
+    ax.set_prop_cycle(color=[
+    '#1f77b4',  # Dark blue
+    'black',    # Black
+    '#d62728',  # Dark red
+    '#9467bd',  # Dark purple
+    '#8c564b',  # Brown
+    '#e377c2',  # Pink
+    '#7f7f7f',  # Gray
+    '#bcbd22',  # Olive
+    '#17becf',  # Teal
+    '#1b9e77',  # Light green
+    '#8B8000',  # Dark yellow
+    '#ff7f0e',  # Dark orange
+    '#66c2a5',  # Seafoam green
+    '#ff1493',  # Deep pink
+    ])
+    
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
@@ -116,6 +134,6 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
 
-    plt.legend(legend_names, bbox_to_anchor=(1.0,1.1), loc='upper left')
-    plt.tight_layout((rect=[0, 0.03, 1, 0.95]))
+    plt.legend(legend_names, bbox_to_anchor=(1.00,1.0), loc='best')
+    plt.tight_layout()
     plt.show()
