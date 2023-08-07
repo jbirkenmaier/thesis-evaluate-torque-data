@@ -52,6 +52,21 @@ class av_data():
             k+=int(j)            
         return av_torque_intervalled
 
+    def naming(self):
+        self.name = self.name.replace('_','')
+        self.name = self.name[:-14]
+
+        if 't' in self.name:
+            position_of_t = self.name.index('t')
+            self.name = self.name[:position_of_t]+'mm, Tiefe ' + self.name[position_of_t+1]+'.' + self.name[position_of_t+2:] + 'mm'
+
+        if 'b' in self.name:
+            position_of_b = self.name.index('b')
+            self.name = self.name[:position_of_b]+'Breite ' + self.name[position_of_b+1]+'.' + self.name[position_of_b+2:]
+        if 's' in self.name:
+            position_of_s = self.name.index('s')
+            self.name = self.name[:position_of_s]+'mm, Stegbreite ' + self.name[position_of_s+1]+'.' + self.name[position_of_s+2:]
+            
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction):
     try: 
         os.remove(results_filename_max_reduction)
@@ -103,6 +118,9 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             with open(results_filename_max_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
 
+    for element in data:
+        element.naming()
+        
     legend_names = [element.name for element in data]
     fig, ax = plt.subplots()
     
@@ -121,6 +139,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     '#ff7f0e',  # Dark orange
     '#66c2a5',  # Seafoam green
     '#ff1493',  # Deep pink
+    '#ffcccb'   # Light red 
     ])
     
     for element in data:
@@ -128,12 +147,11 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
             plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.')
-            reduction_spaced_in_percent = [str(element*100)for element in reduction_spaced_in_percent]
+            reduction_spaced_in_percent = [str(element)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
-            print(element.intervall_denumerator)
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
 
     plt.legend(legend_names, bbox_to_anchor=(1.00,1.0), loc='best')
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
