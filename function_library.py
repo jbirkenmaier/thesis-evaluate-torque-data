@@ -44,6 +44,7 @@ class av_data():
         intervalls[0] = num_points_first_intervall
         chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
         self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
+        self.intervall_denumerator = ['(%.f - %.f)/min'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
         k=0
         av_torque_intervalled=[]
         for j in intervalls:
@@ -103,7 +104,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
 
     legend_names = [element.name for element in data]
-            
+
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
@@ -115,5 +116,6 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             with open(results_filename_intervalled_reduction,'a') as file:
                 file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
 
-    plt.legend(legend_names)
+    plt.legend(legend_names, bbox_to_anchor=(1.0,1.1), loc='upper left')
+    plt.tight_layout((rect=[0, 0.03, 1, 0.95]))
     plt.show()
