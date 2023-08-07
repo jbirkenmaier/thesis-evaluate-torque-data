@@ -79,10 +79,8 @@ class av_data():
             position_of_s = self.name.index('s')
             self.name = self.name[:position_of_s]+'mm, Stegbreite ' + self.name[position_of_s+1]+'.' + self.name[position_of_s+2:]
         if 'comp' in self.name:
-            print(self.name)
             self.name=self.name.replace('comp','mm, Kompartements: ')
             self.name=self.name[:-2]
-            print(self.name)
             
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
     try: 
@@ -176,8 +174,6 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     plt.show()
 
     for element in data:
-        print(element.depth, type(element.depth))
-        print(element.find_torque_at_velocity(velocity_for_depth_comparison), type(element.find_torque_at_velocity(velocity_for_depth_comparison)))
         plt.plot(element.depth,element.find_torque_at_velocity(velocity_for_depth_comparison), '.', label=element.name)
 
     plt.ylabel('Absolutes Drehmoment in %')
