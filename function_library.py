@@ -2,6 +2,43 @@ import os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+def statistical_error(data, num_of_points_per_intervall): 
+    i = 0
+    print(type(i))
+    errors=[]
+
+    for j in range(len(num_of_points_per_intervall)):
+        N=int(num_of_points_per_intervall[j])
+        if N == 0:
+            print('Intervall leer')
+            continue
+        
+        if N == 1:
+            print('Im ersten Intervall befindet sich nur ein Wert, keine statistische Auswertung möglich, Fehler wird Null gesetzt.')
+            dataset_to_analyze = data[i:i+N]
+            print(N, ' ', i, dataset_to_analyze)
+            errors.append(0)
+            i=int(i+1)
+            continue
+        dataset_to_analyze = data[i:i+N]
+        print(N, ' ', i, dataset_to_analyze)
+        average = np.sum(dataset_to_analyze)/N
+        squared_error = 0
+        for element in dataset_to_analyze:
+            squared_error += (element-average)**2
+        error_of_dataset = math.sqrt(1/(N*(N-1))*squared_error)
+        errors.append(error_of_dataset)
+        i=int(i+N)
+    print(errors)
+    return errors
+'''
+        error_avg_torque = [torque[i:i+num_of_points] for i in range(0, len_of_file-1, num_of_points)]
+        error_avg_torque = [statistical_error(element) for element in error_avg_torque]
+        #plt.plot(avg_drehzahl,avg_torque, '+', markersize=3.5, label=names_of_plots[plot_counter])
+        plt.errorbar(avg_drehzahl, avg_torque, yerr = error_avg_torque, markersize = 2, fmt = 'o')
+'''
 
 class av_data():
     def __init__(self,name,av_velocity,av_torque):
@@ -10,6 +47,9 @@ class av_data():
         self.av_velocity = av_velocity
         self.intervall_denumerator = []
         self.depth = 0
+        self.num_of_points_per_intervall =[]
+        self.error=[]
+        
     
     def chop_small_torque(self, boundary):
         index = 0
@@ -51,14 +91,20 @@ class av_data():
         num_points_first_intervall=len(self.av_torque)-(num_of_intervalls-1)*space_intervall/velocity_steps
         intervalls = [space_intervall/velocity_steps for i in range(int(num_of_intervalls))]
         intervalls[0] = num_points_first_intervall
+        self.num_of_points_per_intervall = intervalls
         chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
         self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
         self.intervall_denumerator = ['(%.f bis %.f)/min'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
         k=0
         av_torque_intervalled=[]
-        for j in intervalls:
-            av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
-            k+=int(j)            
+        print('INTERVALLS:______________',intervalls)
+        for count, j in enumerate(intervalls):
+            if j!=0:
+                av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
+                k+=int(j)
+            else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
+                self.intervall_denumerator =self.intervall_denumerator[count+1:]
+
         return av_torque_intervalled
 
     def naming(self):
@@ -81,7 +127,12 @@ class av_data():
         if 'comp' in self.name:
             self.name=self.name.replace('comp','mm, Kompartements: ')
             self.name=self.name[:-2]
-            
+
+def get_error(data):
+        error = statistical_error(data)
+        print(error)
+        return error
+        
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
     try: 
         os.remove(results_filename_max_reduction)
@@ -157,11 +208,18 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     ])
     
     #velocity_for_depth_comparison
+
+    reduction_spaced_list =[]#needed to plot errorbars later
+    intervall_denumerator_list =[] #needed to plot errorbars later
     
     for element in data:
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
+
+            reduction_spaced_list.append(reduction_spaced_in_percent)
+            intervall_denumerator_list.append(element.intervall_denumerator)
+
             plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.', label=element.name)
             reduction_spaced_in_percent = [str(element)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
@@ -172,6 +230,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     plt.xlabel('Drehzahlbereiche in 1/min')
     plt.ylabel('Reduktion zu Referenz in %')
     plt.show()
+        
 
     for element in data:
         plt.plot(element.depth,element.find_torque_at_velocity(velocity_for_depth_comparison), '.', label=element.name)
@@ -180,4 +239,17 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     plt.xlabel('Rillentiefe in mm')
     plt.title('Konstante Drehzahl: %.f/min'%velocity_for_depth_comparison)
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
+    plt.show()
+
+    for element in data:
+        if element.name != reference.name:
+            print(element.name)
+            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
+            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
+            y_error = statistical_error(element.av_torque, element.num_of_points_per_intervall)
+            plt.errorbar(element.intervall_denumerator, reduction_spaced_in_percent, yerr = y_error, marker = '.', linestyle='', label=element.name)
+    plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
+    plt.xlabel('Drehzahlbereiche in 1/min')
+    plt.ylabel('Reduktion zu Referenz in %')
+    
     plt.show()
