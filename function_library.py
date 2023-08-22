@@ -4,10 +4,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-def statistical_error(data, num_of_points_per_intervall): 
+def standard_deviation_for_general_dataset(dataset):
+    N = len(dataset)
+    if N == 1:
+        return 0
+    average = np.sum(dataset)/N
+    squared_error = 0
+    for element in dataset:
+        squared_error += (element-average)**2
+    error_of_dataset = math.sqrt(1/(N*(N-1))*squared_error)
+    return error_of_dataset
+    
+
+    
+def standard_deviation_for_averaged_torque_data(data, num_of_points_per_intervall):
+    print('DATASET TO CALCULATE STANDARD DEVIATION OF: \n',data)
     i = 0
-    print(type(i))
     errors=[]
+    print('Check if total number of datapoints is equal to the sum of the number of points per every intervall. ', len(data)== np.sum(num_of_points_per_intervall),',there are %i datapoints total'%len(data))
 
     for j in range(len(num_of_points_per_intervall)):
         N=int(num_of_points_per_intervall[j])
@@ -18,13 +32,13 @@ def statistical_error(data, num_of_points_per_intervall):
         if N == 1:
             print('Im ersten Intervall befindet sich nur ein Wert, keine statistische Auswertung möglich, Fehler wird Null gesetzt.')
             dataset_to_analyze = data[i:i+N]
-            print(N, ' ', i, dataset_to_analyze)
+            print('Number of points in Intervall: ',N, 'Dataset that is analyzed within this intervall: ', dataset_to_analyze)
             errors.append(0)
             i=int(i+1)
             continue
         dataset_to_analyze = data[i:i+N]
-        print(N, ' ', i, dataset_to_analyze)
         average = np.sum(dataset_to_analyze)/N
+        print('Number of points in Intervall: ',N, 'Dataset that is analyzed within this intervall: ', dataset_to_analyze, ', average of dataset: ', average)
         squared_error = 0
         for element in dataset_to_analyze:
             squared_error += (element-average)**2
@@ -94,18 +108,21 @@ class av_data():
         self.num_of_points_per_intervall = intervalls
         chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
         self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
-        self.intervall_denumerator = ['(%.f bis %.f)/min'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
+        self.intervall_denumerator = ['(%.f-%.f)'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
         k=0
-        av_torque_intervalled=[]
-        print('INTERVALLS:______________',intervalls)
+        av_torque_intervalled= []
+        intervalled_error = []
+        
+        #print('INTERVALLS:______________',intervalls)
         for count, j in enumerate(intervalls):
             if j!=0:
                 av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
+                intervalled_error.append(standard_deviation_for_general_dataset(torque_reduction[k:k+int(j)]))
                 k+=int(j)
             else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
                 self.intervall_denumerator =self.intervall_denumerator[count+1:]
 
-        return av_torque_intervalled
+        return av_torque_intervalled, intervalled_error
 
     def naming(self):
         self.name = self.name.replace('_','')
@@ -128,10 +145,10 @@ class av_data():
             self.name=self.name.replace('comp','mm, Kompartements: ')
             self.name=self.name[:-2]
 
-def get_error(data):
-        error = statistical_error(data)
-        print(error)
-        return error
+#def get_error(data):
+#        error = statistical_error(data)
+#        print(error)
+#        return error
         
 def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
     try: 
@@ -214,7 +231,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     
     for element in data:
         if element.name != reference.name:
-            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
+            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
 
             reduction_spaced_list.append(reduction_spaced_in_percent)
@@ -243,11 +260,16 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
 
     for element in data:
         if element.name != reference.name:
-            print(element.name)
-            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])
+            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-            y_error = statistical_error(element.av_torque, element.num_of_points_per_intervall)
+            error_spaced = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[1]
+
+            y_error = [element*100 for element in error_spaced]
+            print(element.name, ', ERRORS: ', y_error)
+
             plt.errorbar(element.intervall_denumerator, reduction_spaced_in_percent, yerr = y_error, marker = '.', linestyle='', label=element.name)
+
+
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.xlabel('Drehzahlbereiche in 1/min')
     plt.ylabel('Reduktion zu Referenz in %')
