@@ -58,6 +58,8 @@ class av_data():
         self.depth = 0
         self.num_of_points_per_intervall =[]
         self.error=[]
+        self.intervalled_error=[]
+        self.name_shorts = name
         
     
     def chop_small_torque(self, boundary):
@@ -117,7 +119,7 @@ class av_data():
                 k+=int(j)
             else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
                 self.intervall_denumerator =self.intervall_denumerator[count+1:]
-
+        self.intervalled_error = intervalled_error
         return av_torque_intervalled, intervalled_error
 
     def naming(self):
@@ -195,7 +197,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(max_reduction_torque,max_reduction_velocity,min_reduction_torque,min_reduction_velocity))  
 
             with open(results_filename_max_reduction,'a') as file:
-                file.write(str(element.name)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
 
     for element in data:
         element.naming()
@@ -237,7 +239,12 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             reduction_spaced_in_percent = [str(element)for element in reduction_spaced_in_percent]
             print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
             with open(results_filename_intervalled_reduction,'a') as file:
-                file.write(str(element.name)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join(element.intervall_denumerator)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join([str(particle) for particle in element.intervalled_error])+'\n')
+                #firt line: reduction_spaced_in_percent
+                #second line: intervalls
+                #third line : errors
 
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.xlabel('Drehzahlbereiche in 1/min')
