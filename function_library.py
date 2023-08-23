@@ -13,6 +13,7 @@ def standard_deviation_for_general_dataset(dataset):
     for element in dataset:
         squared_error += (element-average)**2
     error_of_dataset = math.sqrt(1/(N*(N-1))*squared_error)
+    print('Error of dataset (%): ', error_of_dataset*100, ', Average: ', average, ', square error: ', squared_error)
     return error_of_dataset
     
 
@@ -45,14 +46,8 @@ def standard_deviation_for_averaged_torque_data(data, num_of_points_per_interval
         error_of_dataset = math.sqrt(1/(N*(N-1))*squared_error)
         errors.append(error_of_dataset)
         i=int(i+N)
-    print(errors)
     return errors
-'''
-        error_avg_torque = [torque[i:i+num_of_points] for i in range(0, len_of_file-1, num_of_points)]
-        error_avg_torque = [statistical_error(element) for element in error_avg_torque]
-        #plt.plot(avg_drehzahl,avg_torque, '+', markersize=3.5, label=names_of_plots[plot_counter])
-        plt.errorbar(avg_drehzahl, avg_torque, yerr = error_avg_torque, markersize = 2, fmt = 'o')
-'''
+
 
 class av_data():
     def __init__(self,name,av_velocity,av_torque):
@@ -118,6 +113,7 @@ class av_data():
             if j!=0:
                 av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
                 intervalled_error.append(standard_deviation_for_general_dataset(torque_reduction[k:k+int(j)]))
+                print(torque_reduction[k:k+int(j)])
                 k+=int(j)
             else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
                 self.intervall_denumerator =self.intervall_denumerator[count+1:]
@@ -265,8 +261,9 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             error_spaced = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[1]
 
             y_error = [element*100 for element in error_spaced]
-            print(element.name, ', ERRORS: ', y_error)
-
+            print(element.name, ',\n ERRORS: ', y_error)
+            print('REDUCTIONS (PERCENT): ',reduction_spaced_in_percent)
+            print('RAW REDUCTION DATA (length: %i): '%len(element.find_ext_reduction(reference.av_torque)[4]), element.find_ext_reduction(reference.av_torque)[4])
             plt.errorbar(element.intervall_denumerator, reduction_spaced_in_percent, yerr = y_error, marker = '.', linestyle='', label=element.name)
 
 
