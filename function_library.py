@@ -12,7 +12,7 @@ def standard_deviation_for_general_dataset(dataset):
     squared_error = 0
     for element in dataset:
         squared_error += (element-average)**2
-    error_of_dataset = math.sqrt(1/(N*(N-1))*squared_error)
+    error_of_dataset = math.sqrt(1/(N)*squared_error)# N*(N-1)??
     print('Error of dataset (%): ', error_of_dataset*100, ', Average: ', average, ', square error: ', squared_error)
     return error_of_dataset
     
@@ -50,7 +50,8 @@ def standard_deviation_for_averaged_torque_data(data, num_of_points_per_interval
 
 
 class av_data():
-    def __init__(self,name,av_velocity,av_torque):
+    def __init__(self,name,av_velocity,av_torque, minimum_step):
+        self.minimum_step = minimum_step
         self.name = name
         self.av_torque = av_torque
         self.av_velocity = av_velocity
@@ -105,7 +106,10 @@ class av_data():
         self.num_of_points_per_intervall = intervalls
         chopped_intervalls = len(self.intervall_denumerator)-len(intervalls)
         self.intervall_denumerator = self.intervall_denumerator[chopped_intervalls:]
-        self.intervall_denumerator = ['(%.f-%.f)'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
+        if space_intervall > self.minimum_step:
+            self.intervall_denumerator = ['(%.f-%.f)'%(element*space_intervall, (element+1)*space_intervall) for element in self.intervall_denumerator]
+        else:
+            self.intervall_denumerator = [str((element+1)*space_intervall) for element in self.intervall_denumerator]
         k=0
         av_torque_intervalled= []
         intervalled_error = []
@@ -148,7 +152,7 @@ class av_data():
 #        print(error)
 #        return error
         
-def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
+def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_torque, intervall_range,minimum_step,results_filename_max_reduction,results_filename_intervalled_reduction, velocity_for_depth_comparison=105):
     try: 
         os.remove(results_filename_max_reduction)
         os.remove(results_filename_intervalled_reduction)
@@ -178,7 +182,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
             print(len_of_file ,  element)
             avg_torque = [np.sum(torque[i:i+num_of_datapoints])/num_of_datapoints for i in range(0,len_of_file,num_of_datapoints)]
             avg_velocity = [np.sum(velocity[i:i+num_of_datapoints])/num_of_datapoints for i in range(0,len_of_file,num_of_datapoints)]
-            data.append(av_data(element, avg_velocity, avg_torque))
+            data.append(av_data(element, avg_velocity, avg_torque, minimum_step))
 
     reference = next((element for element in data if element.name == name_of_reference),None)
     
