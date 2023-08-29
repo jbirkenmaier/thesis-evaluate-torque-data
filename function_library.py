@@ -13,8 +13,15 @@ def standard_deviation_for_general_dataset(dataset):
     for element in dataset:
         squared_error += (element-average)**2
     error_of_dataset = math.sqrt(1/(N)*squared_error)# N*(N-1)??
-    print('Error of dataset (%): ', error_of_dataset*100, ', Average: ', average, ', square error: ', squared_error)
+    #print('Error of dataset (%): ', error_of_dataset*100, ', Average: ', average, ', square error: ', squared_error)
     return error_of_dataset
+
+def span_for_general_dataset(dataset):
+    N=len(dataset)
+    average = np.sum(dataset)/N
+    lower_candle = average-min(dataset)
+    upper_candle = max(dataset)-average
+    return lower_candle, upper_candle
     
 
     
@@ -60,6 +67,7 @@ class av_data():
         self.num_of_points_per_intervall =[]
         self.error=[]
         self.intervalled_error=[]
+        self.intervalled_span=[]
         self.name_shorts = name
         
     
@@ -119,12 +127,14 @@ class av_data():
             if j!=0:
                 av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
                 intervalled_error.append(standard_deviation_for_general_dataset(torque_reduction[k:k+int(j)]))
-                print(torque_reduction[k:k+int(j)])
+                self.intervalled_span.append(span_for_general_dataset(torque_reduction[k:k+int(j)]))
+                #print(torque_reduction[k:k+int(j)])
                 k+=int(j)
             else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
                 self.intervall_denumerator =self.intervall_denumerator[count+1:]
         self.intervalled_error = intervalled_error
-        return av_torque_intervalled, intervalled_error
+        intervalled_span = self.intervalled_span
+        return av_torque_intervalled, intervalled_error, intervalled_span
 
     def naming(self):
         self.name = self.name.replace('_','')
@@ -265,7 +275,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.show()
 
-    for element in data:
+    for element in data: #standard deviation plot for intervalled data
         if element.name != reference.name:
             reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
             reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
@@ -283,3 +293,16 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     plt.ylabel('Reduktion zu Referenz in %')
     
     plt.show()
+
+    for element in data:
+        if element.name!= reference.name:
+            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
+            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
+
+            print(element.name, element.intervalled_span)
+
+            '''
+            for obj in element.intervalled_span:
+                y_span = [particle*100 for particle in obj]
+            print('INTERVALLED SPAN OF %s: '%element.name, y_span)
+            '''
