@@ -66,10 +66,21 @@ class av_data():
         self.depth = 0
         self.num_of_points_per_intervall =[]
         self.error=[]
-        self.intervalled_error=[]
-        self.intervalled_span_negative=[]
-        self.intervalled_span_positive=[]
         self.name_shorts = name
+
+        #find_ext_reduction
+        self.max_difference = 0 #in percent. when the function "find_ext_reduction" is called, it calculates max and min difference and multiplies by 100
+        self.optimal_velocity = 0
+        self.min_difference = 0
+        self.min_velocity = 0
+        self.difference = [] #List of differences of the datapoints to reference
+
+        #average_over_space
+        self.av_torque_intervalled = [] #in percent
+        self.intervalled_error=[] #in percent
+        self.intervalled_span_negative=[] #in percent
+        self.intervalled_span_positive=[] #in percent
+        
         
     
     def chop_small_torque(self, boundary):
@@ -90,13 +101,14 @@ class av_data():
         len_of_torque = len(self.av_torque)
         reference = reference[-len_of_torque:]
         
-        difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))] 
-        max_difference = max(difference)
-        min_difference = min(difference)
-        optimal_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == max_difference), None)
-        min_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == min_difference), None)
-        
-        return max_difference, optimal_velocity, min_difference, min_velocity, difference
+        self.difference = [1-self.av_torque[i]/reference[i] for i in range(len(self.av_torque))] 
+        self.max_difference = max(self.difference)
+        self.min_difference = min(self.difference)
+        self.optimal_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == self.max_difference), None)
+        self.min_velocity = next((self.av_velocity[i] for i in range(len(self.av_velocity)) if 1-self.av_torque[i]/reference[i] == self.min_difference), None)
+        self.max_difference = self.max_difference*100
+        self.min_difference = self.min_difference*100      
+        #return max_difference, optimal_velocity, min_difference, min_velocity, difference
 
     def find_torque_at_velocity(self, velocity):
         for j,element in enumerate(self.av_velocity):
@@ -129,19 +141,17 @@ class av_data():
                 av_torque_intervalled.append(sum(torque_reduction[k:k+int(j)])/int(j))
                 intervalled_error.append(standard_deviation_for_general_dataset(torque_reduction[k:k+int(j)]))
                 if len(self.intervalled_span_negative) < num_of_intervalls:
-                    self.intervalled_span_negative.append(span_for_general_dataset(torque_reduction[k:k+int(j)])[0])
-                    self.intervalled_span_positive.append(span_for_general_dataset(torque_reduction[k:k+int(j)])[1])
+                    self.intervalled_span_negative.append(span_for_general_dataset(torque_reduction[k:k+int(j)])[0]*100)
+                    self.intervalled_span_positive.append(span_for_general_dataset(torque_reduction[k:k+int(j)])[1]*100)
+                    print(self.intervalled_span_negative,self.intervalled_span_positive,'OOOOOOOOOOOOOOOO')
                     #print(len(av_torque_intervalled),'/', num_of_intervalls,'/', len(self.intervalled_span_negative), len(self.intervalled_span_positive), len(av_torque_intervalled))
                 #print(torque_reduction[k:k+int(j)])
                 k+=int(j)
             else:#chop of the empty first intervall denumerators, we assume here that always the first ones are going to be empty
                 self.intervall_denumerator =self.intervall_denumerator[count+1:]
-        self.intervalled_error = intervalled_error
-        intervalled_span_negative = self.intervalled_span_negative
-        intervalled_span_positive = self.intervalled_span_positive
-
+        self.intervalled_error = [element*100 for element in intervalled_error]
+        self.av_torque_intervalled = [element*100 for element in av_torque_intervalled]
         print(len(av_torque_intervalled),' vs ',len(self.intervalled_span_negative)) 
-        return av_torque_intervalled, intervalled_error, intervalled_span_negative, intervalled_span_positive
 
     def naming(self):
         self.name = self.name.replace('_','')
@@ -207,21 +217,20 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     for element in data:
         if element.name != reference.name:
             element.chop_small_torque(minimum_acceptable_torque)
+
     
     for element in data:
         if element.name != reference.name:
-            max_reduction_torque = element.find_ext_reduction(reference.av_torque)[0]*100
-            max_reduction_velocity = element.find_ext_reduction(reference.av_torque)[1]
-            min_reduction_torque = element.find_ext_reduction(reference.av_torque)[2]*100
-            min_reduction_velocity = element.find_ext_reduction(reference.av_torque)[3]
+            element.find_ext_reduction(reference.av_torque)
             
-            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(max_reduction_torque,max_reduction_velocity,min_reduction_torque,min_reduction_velocity))  
+            print(element.name, ', maximum reduction to reference: %f%%, at velocity: %.2f 1/min, minimum reduction to reference: %f%%, at velocity: %.2f 1/min'%(element.max_difference,element.optimal_velocity,element.min_difference,element.min_velocity))  
 
             with open(results_filename_max_reduction,'a') as file:
-                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ str(max_reduction_torque)+','+ str(max_reduction_velocity)+','+str(min_reduction_torque)+','+str(min_reduction_velocity)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ str(element.max_difference)+','+ str(element.optimal_velocity)+','+str(element.min_difference)+','+str(element.min_velocity)+'\n')
 
     for element in data:
         element.naming()
+    
         
     fig, ax = plt.subplots()
     
@@ -250,22 +259,24 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     
     for element in data:
         if element.name != reference.name:
-            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
-            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-
-            reduction_spaced_list.append(reduction_spaced_in_percent)
+            print(element.difference,'!!!!!!!!!!!!!!!!!!!!!!!')
+            element.average_over_space(intervall_range, element.difference)
+            reduction_spaced_list.append(element.av_torque_intervalled)
             intervall_denumerator_list.append(element.intervall_denumerator)
 
-            plt.plot(element.intervall_denumerator,reduction_spaced_in_percent, '.', label=element.name)
-            reduction_spaced_in_percent = [str(element)for element in reduction_spaced_in_percent]
-            print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, reduction_spaced_in_percent)
+            print('WORKS WORKS WORKS')
+
+            plt.plot(element.intervall_denumerator,element.av_torque_intervalled, '.', label=element.name) #av_torque_intervalled = reduced ??
+            element.av_torque_intervalled = [str(element)for element in element.av_torque_intervalled]
+            print(element.name,'average reduction in intervalls of %i 1/min: '%intervall_range, element.av_torque_intervalled)
             with open(results_filename_intervalled_reduction,'a') as file:
-                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join(reduction_spaced_in_percent)+'\n')
+                file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join(element.av_torque_intervalled)+'\n')
                 file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join(element.intervall_denumerator)+'\n')
                 file.write(str(element.name_shorts)[:-18].replace('_',' ')+','+ ','.join([str(particle) for particle in element.intervalled_error])+'\n')
-                #firt line: reduction_spaced_in_percent
+                #firt line: element.av_torque_intervalled
                 #second line: intervalls
                 #third line : errors
+            element.av_torque_intervalled = [float(element)for element in element.av_torque_intervalled]
 
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.xlabel('Drehzahlbereiche in 1/min')
@@ -291,6 +302,7 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     '#ff1493',  # Deep pink
     '#ffcccb'   # Light red 
     ])
+
 
     for element in data:
         plt.plot(element.depth,element.find_torque_at_velocity(velocity_for_depth_comparison), '.', label=element.name)
@@ -320,18 +332,16 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     '#ff1493',  # Deep pink
     '#ffcccb'   # Light red 
     ])
+    #----------------------------------------------------------------------
 
     for element in data: #standard deviation plot for intervalled data
         if element.name != reference.name:
-            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
-            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-            error_spaced = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[1]
-
-            y_error = [element*100 for element in error_spaced]
+            y_error = element.intervalled_error
             print(element.name, ',\n ERRORS: ', y_error)
-            print('REDUCTIONS (PERCENT): ',reduction_spaced_in_percent)
-            print('RAW REDUCTION DATA (length: %i): '%len(element.find_ext_reduction(reference.av_torque)[4]), element.find_ext_reduction(reference.av_torque)[4])
-            plt.errorbar(element.intervall_denumerator, reduction_spaced_in_percent, yerr = y_error, marker = '.', linestyle='', label=element.name)
+            print('REDUCTIONS (PERCENT): ',element.av_torque_intervalled)
+            print('RAW REDUCTION DATA (length: %i): '%len(element.difference), element.difference)
+            print(type(element.av_torque_intervalled[0]))
+            plt.errorbar(element.intervall_denumerator, element.av_torque_intervalled, yerr = y_error, marker = '.', linestyle='', label=element.name)
 
 
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
@@ -360,28 +370,25 @@ def read_torque_csv(num_of_datapoints, name_of_reference, minimum_acceptable_tor
     '#ffcccb'   # Light red 
     ])
 
+    #----------------------------------------------------------------------
+
+
     for element in data:
         if element.name!= reference.name:
-            reduction_spaced_in_percent = element.average_over_space(intervall_range, element.find_ext_reduction(reference.av_torque)[4])[0]
-            reduction_spaced_in_percent = [element*100 for element in reduction_spaced_in_percent]
-
             #reduction_spaced_length should be 8
             #it is.
             #why is span lenght not 8?? 
-            print(len(element.intervalled_span_negative),' vs ', len(reduction_spaced_in_percent))
+            print(len(element.intervalled_span_negative),' vs ', len(element.av_torque_intervalled))
 
             #intervalled_span = [list(obj) for obj in element.intervalled_span]
 
-            if len(reduction_spaced_in_percent)!=len(element.intervalled_span_negative) or len(reduction_spaced_in_percent)!=len(element.intervalled_span_positive):
-                print(element.name, 'PROBLEM HERE, ',len(reduction_spaced_in_percent),len(element.intervalled_span_negative),len(element.intervalled_span_positive))
+            if len(element.av_torque_intervalled)!=len(element.intervalled_span_negative) or len(element.av_torque_intervalled)!=len(element.intervalled_span_positive):
+                print(element.name, 'PROBLEM HERE, ',len(element.av_torque_intervalled),len(element.intervalled_span_negative),len(element.intervalled_span_positive))
 
             
-            intervalled_span_negative_in_percent = [obj*100 for obj in element.intervalled_span_negative]
-            intervalled_span_positive_in_percent = [obj*100 for obj in element.intervalled_span_positive]
-            
-            print(element.name,'NUM OF POSITIVES/NUM OF NEGATIVES','%i/%i'%(len(intervalled_span_positive_in_percent),len(intervalled_span_negative_in_percent)), ', positive_candles: ',intervalled_span_positive_in_percent, ', negative_candles: ', intervalled_span_negative_in_percent)
+            print(element.name,'NUM OF POSITIVES/NUM OF NEGATIVES','%i/%i'%(len(element.intervalled_span_positive),len(element.intervalled_span_negative)), ', positive_candles: ',element.intervalled_span_positive, ', negative_candles: ', element.intervalled_span_negative)
             print('---------------------------------------')
-            plt.errorbar(element.intervall_denumerator, reduction_spaced_in_percent, yerr = [intervalled_span_negative_in_percent,intervalled_span_positive_in_percent], marker = '.', linestyle='', label=element.name)
+            plt.errorbar(element.intervall_denumerator, element.av_torque_intervalled, yerr = [element.intervalled_span_negative,element.intervalled_span_positive], marker = '.', linestyle='', label=element.name)
     plt.legend(bbox_to_anchor=(1.00,1.0), loc='best')
     plt.xlabel('Drehzahlbereiche in 1/min')
     plt.ylabel('Reduktion zu Referenz in %')
